@@ -1,26 +1,23 @@
-[English](README_EN.md) | 中文
+English | [中文](README.md)
 
-# fuse device plugin
+# fuse device plugin for Kubernetes
 
-> Inspired by @JasonChenY's [fuse-device-plugin](https://github.com/JasonChenY/fuse-device-plugin)
+This repository contains implementation of the [Kubernetes device plugin](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md) alpha feature from version 1.8.
 
-## 环境要求
+## Background
+When pod need access /dev/fuse, e.g to mount sshfs or ceph s3fs, containter need to be running in privileged mode to access host's /dev/fuse device, this is not safe.
 
-[Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md) version >= 1.8.
+What make it worse is when the pod need access nvidia GPU devices on the host node. 
 
-## 背景
+For example totally 4 GPU devices available on the host node, but only one of them is requested and allocated for the pod, in privileged mode, all of the 4 GPUs are accessible by the application running in the pod container, application like tensorflow will use all the visible GPUs by default, if the other GPUs already allocated for other pod, will cause errors
+  
+With this device plugin, pod dont need to run in privileged mode to access /dev/fuse by injecting the fuse device to pod directly, avoiding the potential confilct for GPU.
 
-使用 `sshfs` 或者 `s3fs` 等时， 需要在容器中使用 `/dev/fuse` 的话需要使用特权模式，这会带来许多的问题，比如GPU数量无法屏蔽，容器内可以看到宿主机上所有的GPU卡数。基于此，我们可以仿照 `nvidia-device-plugin` 的方式实现 `fuse-device-plugin`,通过注入的方式来使用 `/dev/fuse`
+## Usage
+Please make sure that the Kubelet has been started with the `--feature-gates=DevicePlugins=true`
+before running the device plugin.
 
-## 使用要求
-
-使用前请确保 `--feature-gates=DevicePlugins=true` 已开启.
-
-```bash
-kubelet -h | grep "DevicePlugins"
-```
-
-## 部署:
+#### Deploy as Daemon Set:
 
 * kubernete version < 1.16
 
@@ -34,9 +31,9 @@ kubectl create -f fuse-device-plugin.yml
 kubectl create -f fuse-device-plugin-k8s-1.16.yml
 ```
 
-## 使用
+#### Deploy
 
-参照 [fuse-test.yml](fuse-test.yml)
+Refer to [fuse-test.yml](fuse-test.yml)
 
 ```yaml
 spec: 
@@ -47,6 +44,7 @@ spec:
         github.com/fuse: 1
 ```
 
-# 特别感谢
+
+# Thanks
 
 ![Goland](https://blog.jetbrains.com/wp-content/uploads/2019/01/goland_icon.svg)
